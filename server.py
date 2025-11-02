@@ -16,13 +16,17 @@ load_dotenv()
 # Initialize FastAPI app
 app = FastAPI(title="AI Trading Analyzer API")
 
-# Configure CORS
+# Get allowed origins from environment (comma-separated list)
+allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000")
+allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",")]
+
+# Configure CORS with secure settings
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
+    allow_origins=allowed_origins,  # Specific origins only
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 # Initialize OpenAI client
@@ -67,7 +71,7 @@ async def analyze_trading_chart(image_bytes: bytes, filename: str) -> str:
     Use OpenAI Vision API to analyze trading chart
     """
     try:
-        # Encode image to base64
+        # Encode image to base64 (reuse the same buffer)
         base64_image = encode_image_to_base64(image_bytes)
         
         # Determine image format from filename
@@ -105,10 +109,15 @@ async def analyze_trading_chart(image_bytes: bytes, filename: str) -> str:
         analysis = response.choices[0].message.content
         return analysis
         
+    except openai.OpenAIError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"OpenAI API error: {str(e)}"
+        )
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"Error analyzing image with OpenAI: {str(e)}"
+            detail=f"Error analyzing image: {str(e)}"
         )
 
 
@@ -140,26 +149,45 @@ async def upload_chart(file: UploadFile = File(...)):
             detail="Invalid file type. Please upload an image file."
         )
     
+    # Check file size limit (10MB)
+    max_size = int(os.getenv("MAX_UPLOAD_SIZE_MB", "10")) * 1024 * 1024
+    
     try:
-        # Read image bytes
+        # Read image bytes ONCE
         image_bytes = await file.read()
         
-        # Validate image can be opened
+        # Check file size
+        if len(image_bytes) > max_size:
+            raise HTTPException(
+                status_code=413,
+                detail=f"File too large. Maximum size is {max_size // (1024 * 1024)}MB"
+            )
+        
+        # Validate image can be opened (reuse the same buffer)
         try:
             img = Image.open(BytesIO(image_bytes))
             img.verify()
+            
+            # Reopen to get actual image (verify closes it)
+            img = Image.open(BytesIO(image_bytes))
+            
+            # Optional: Downscale large images to reduce processing cost
+            max_dimension = int(os.getenv("MAX_IMAGE_DIMENSION", "2048"))
+            if max(img.size) > max_dimension:
+                img.thumbnail((max_dimension, max_dimension), Image.Resampling.LANCZOS)
+                # Convert back to bytes
+                buffer = BytesIO()
+                img_format = img.format or 'PNG'
+                img.save(buffer, format=img_format)
+                image_bytes = buffer.getvalue()
+                
         except Exception as e:
             raise HTTPException(
                 status_code=400,
-                detail="Invalid or corrupted image file"
+                detail=f"Invalid or corrupted image file: {str(e)}"
             )
         
-        # Reset file pointer after verify
-        image_bytes = await file.read()
-        await file.seek(0)
-        image_bytes = await file.read()
-        
-        # Analyze the trading chart using OpenAI
+        # Analyze the trading chart using OpenAI (reuse image_bytes)
         analysis = await analyze_trading_chart(image_bytes, file.filename or "chart.png")
         
         # Return the analysis with timestamp
