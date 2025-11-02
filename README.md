@@ -150,8 +150,22 @@ Upload and analyze a trading chart
 
 ### Run Backend Tests
 
+First, ensure test dependencies are installed:
+
+```bash
+pip install -r requirements.txt
+```
+
+Then run the tests:
+
 ```bash
 pytest test_server.py -v
+```
+
+For quick test run:
+
+```bash
+pytest test_server.py -q
 ```
 
 The test suite includes:
@@ -164,11 +178,14 @@ The test suite includes:
 
 ### Test Coverage
 
-To run tests with coverage:
+To run tests with coverage (install pytest-cov first):
 
 ```bash
+pip install pytest-cov
 pytest test_server.py --cov=server --cov-report=html
 ```
+
+**Note:** Tests use `httpx<0.28` for compatibility with FastAPI 0.104.x TestClient.
 
 ## Building for Production
 
