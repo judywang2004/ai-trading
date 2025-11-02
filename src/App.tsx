@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { Upload, TrendingUp, AlertCircle, Loader2, ImageIcon } from 'lucide-react'
 import './App.css'
@@ -15,9 +15,22 @@ function App() {
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  // Cleanup: Revoke ObjectURL to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl)
+      }
+    }
+  }, [previewUrl])
+
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
+      // Revoke previous URL before creating new one
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl)
+      }
       setSelectedFile(file)
       setPreviewUrl(URL.createObjectURL(file))
       setResult(null)
@@ -59,6 +72,10 @@ function App() {
     
     const file = e.dataTransfer.files?.[0]
     if (file && file.type.startsWith('image/')) {
+      // Revoke previous URL before creating new one
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl)
+      }
       setSelectedFile(file)
       setPreviewUrl(URL.createObjectURL(file))
       setResult(null)
@@ -165,6 +182,10 @@ function App() {
             <button
               className="new-analysis-btn"
               onClick={() => {
+                // Revoke ObjectURL before clearing
+                if (previewUrl) {
+                  URL.revokeObjectURL(previewUrl)
+                }
                 setSelectedFile(null)
                 setPreviewUrl(null)
                 setResult(null)
