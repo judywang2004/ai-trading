@@ -2,6 +2,9 @@
 
 An AI-powered trading chart analysis application that uses OpenAI's GPT-4 Vision API to provide comprehensive trading insights and strategies.
 
+> **中文用户**: 查看 [SETUP_CN.md](./SETUP_CN.md) 获取详细的中文安装和运行步骤  
+> **Chinese Users**: See [SETUP_CN.md](./SETUP_CN.md) for detailed setup instructions in Chinese
+
 ## Features
 
 - 🖼️ **Image Upload**: Drag-and-drop or browse to upload trading charts
@@ -34,7 +37,36 @@ An AI-powered trading chart analysis application that uses OpenAI's GPT-4 Vision
 - Python 3.8+
 - OpenAI API key with GPT-4 Vision access
 
-## Setup Instructions
+## Quick Setup (Easiest Way)
+
+Run the automated setup script:
+
+```bash
+chmod +x setup.sh
+./setup.sh
+```
+
+This will:
+- Check all prerequisites
+- Create `.env` file with your OpenAI API key
+- Install all dependencies
+- Run tests to verify setup
+
+Then start the servers in separate terminals:
+
+```bash
+# Terminal 1: Backend
+./start_backend.sh
+
+# Terminal 2: Frontend  
+./start_frontend.sh
+```
+
+Open http://localhost:3000 in your browser!
+
+---
+
+## Manual Setup Instructions
 
 ### 1. Clone the Repository
 
