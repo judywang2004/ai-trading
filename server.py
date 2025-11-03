@@ -35,23 +35,115 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 if not openai.api_key:
     print("WARNING: OPENAI_API_KEY not found in environment variables!")
 
-# Trading analysis prompt
-TRADING_ANALYSIS_PROMPT = """You are an expert trading analyst. Analyze this trading chart image and provide a comprehensive trading analysis including:
+# Trading analysis prompt - Enhanced version
+TRADING_ANALYSIS_PROMPT = """You are a professional trading analyst with 15+ years of experience in technical analysis. Analyze this trading chart thoroughly and provide an in-depth, actionable trading analysis.
 
-1. **Chart Pattern Recognition**: Identify any technical patterns (head and shoulders, triangles, flags, etc.)
-2. **Trend Analysis**: Determine the current trend (uptrend, downtrend, sideways)
-3. **Support & Resistance Levels**: Identify key support and resistance levels
-4. **Technical Indicators**: Analyze any visible indicators (RSI, MACD, Moving Averages, etc.)
-5. **Volume Analysis**: Comment on volume patterns if visible
-6. **Trading Strategy**: Provide specific trading recommendations:
-   - Entry points
-   - Stop loss levels
-   - Take profit targets
-   - Risk/reward ratio
-7. **Market Sentiment**: Overall market sentiment and confidence level
-8. **Risk Assessment**: Potential risks and warnings
+## Analysis Framework:
 
-Please provide a detailed, actionable analysis that a trader can use to make informed decisions."""
+### 1. Chart Overview
+- Asset/Symbol identification (if visible)
+- Timeframe analysis
+- Current price level and recent price action
+
+### 2. Technical Pattern Recognition
+- Identify ALL chart patterns (head & shoulders, double top/bottom, triangles, wedges, flags, pennants, channels, etc.)
+- Pattern confirmation status and reliability
+- Historical pattern performance context
+- Pattern targets and invalidation levels
+
+### 3. Trend Analysis
+- Primary trend direction (uptrend/downtrend/sideways)
+- Trend strength (strong/moderate/weak)
+- Higher highs/higher lows or lower highs/lower lows
+- Potential trend reversal signals
+- Multiple timeframe trend alignment
+
+### 4. Support & Resistance Analysis
+- Major support levels (list at least 3 with price levels)
+- Major resistance levels (list at least 3 with price levels)
+- Dynamic support/resistance (moving averages)
+- Historical significance of these levels
+- Confluence zones (where multiple levels align)
+
+### 5. Technical Indicators Deep Dive
+Analyze ALL visible indicators:
+- **Moving Averages**: Crossovers, slopes, dynamic support/resistance
+- **RSI**: Overbought/oversold conditions, divergences, trend
+- **MACD**: Signal crossovers, histogram, divergences
+- **Volume**: Volume spikes, volume trends, volume confirmation
+- **Bollinger Bands**: Squeeze, expansion, price position
+- **Stochastic**: Overbought/oversold, divergences
+- Any other visible indicators
+
+### 6. Market Structure
+- Key swing highs and swing lows
+- Market phases (accumulation, markup, distribution, markdown)
+- Liquidity zones
+- Order flow implications
+
+### 7. Price Action Analysis
+- Candlestick patterns (engulfing, doji, hammer, shooting star, etc.)
+- Price rejection points
+- Breakout or breakdown scenarios
+- Gap analysis if any
+
+### 8. Trading Strategy & Execution Plan
+
+**LONG Setup (if applicable):**
+- Entry zone: [specific price range]
+- Stop loss: [specific price with reasoning]
+- Target 1: [conservative target with price]
+- Target 2: [moderate target with price]
+- Target 3: [aggressive target with price]
+- Risk/Reward ratio: [calculate specific ratio]
+- Position sizing recommendation
+- Entry confirmation signals to wait for
+
+**SHORT Setup (if applicable):**
+- Entry zone: [specific price range]
+- Stop loss: [specific price with reasoning]
+- Target 1: [conservative target with price]
+- Target 2: [moderate target with price]
+- Target 3: [aggressive target with price]
+- Risk/Reward ratio: [calculate specific ratio]
+- Position sizing recommendation
+- Entry confirmation signals to wait for
+
+### 9. Scenario Analysis
+- **Bullish Scenario**: What needs to happen, probability, price targets
+- **Bearish Scenario**: What needs to happen, probability, price targets
+- **Neutral Scenario**: Sideways action, range bounds
+
+### 10. Risk Assessment
+- Major risk factors
+- Potential fake-out scenarios
+- External factors to monitor (news, events)
+- Volatility considerations
+
+### 11. Trade Management
+- When to take partial profits
+- How to trail stop loss
+- Signs to exit early
+- Position adjustment strategies
+
+### 12. Market Sentiment & Confidence
+- Overall market sentiment (bullish/bearish/neutral)
+- Confidence level in analysis (High/Medium/Low)
+- Key levels to watch for sentiment shift
+
+### 13. Timeline & Monitoring
+- Expected timeframe for setup to play out
+- Key levels to monitor
+- Important upcoming events or data releases
+
+## Formatting Requirements:
+- Use clear headings and bullet points
+- Provide SPECIFIC price levels (not vague descriptions)
+- Include percentage moves where relevant
+- Be decisive but acknowledge uncertainty where it exists
+- Prioritize the most important information first
+
+Provide a comprehensive, professional analysis that institutional traders would find valuable."""
 
 
 def validate_image(file: UploadFile) -> bool:
@@ -71,16 +163,25 @@ async def analyze_trading_chart(image_bytes: bytes, filename: str) -> str:
     Use OpenAI Vision API to analyze trading chart
     """
     try:
+        print(f"\n{'='*60}")
+        print(f"🔍 [DEBUG] 开始分析图片")
+        print(f"📁 [DEBUG] 文件名: {filename}")
+        print(f"📊 [DEBUG] 图片大小: {len(image_bytes)} bytes")
+        
         # Encode image to base64 (reuse the same buffer)
         base64_image = encode_image_to_base64(image_bytes)
+        print(f"✅ [DEBUG] Base64 编码完成，长度: {len(base64_image)}")
         
         # Determine image format from filename
         image_format = filename.split('.')[-1].lower()
         if image_format == 'jpg':
             image_format = 'jpeg'
+        print(f"📷 [DEBUG] 图片格式: {image_format}")
         
         # Create the API call to OpenAI with vision
         client = openai.OpenAI(api_key=openai.api_key)
+        print(f"🔑 [DEBUG] OpenAI 客户端已创建")
+        print(f"🚀 [DEBUG] 正在调用 GPT-4 Vision API...")
         
         response = client.chat.completions.create(
             model="gpt-4o",  # GPT-4 with vision capabilities
@@ -102,19 +203,33 @@ async def analyze_trading_chart(image_bytes: bytes, filename: str) -> str:
                     ]
                 }
             ],
-            max_tokens=2000,
-            temperature=0.7
+            max_tokens=4000,  # Increased for more detailed analysis
+            temperature=0.3  # Lower for more focused, precise analysis
         )
         
+        print(f"✅ [DEBUG] OpenAI API 调用成功!")
+        print(f"📝 [DEBUG] 响应模型: {response.model}")
+        print(f"💰 [DEBUG] Token 使用: {response.usage.total_tokens if response.usage else 'N/A'}")
+        
         analysis = response.choices[0].message.content
+        print(f"📄 [DEBUG] 分析结果长度: {len(analysis)} 字符")
+        print(f"🔤 [DEBUG] 分析结果前100字符: {analysis[:100]}...")
+        print(f"{'='*60}\n")
+        
         return analysis
         
     except openai.OpenAIError as e:
+        print(f"❌ [ERROR] OpenAI API 错误: {str(e)}")
+        print(f"❌ [ERROR] 错误类型: {type(e).__name__}")
         raise HTTPException(
             status_code=500,
             detail=f"OpenAI API error: {str(e)}"
         )
     except Exception as e:
+        print(f"❌ [ERROR] 分析图片时出错: {str(e)}")
+        print(f"❌ [ERROR] 错误类型: {type(e).__name__}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=500,
             detail=f"Error analyzing image: {str(e)}"
@@ -142,8 +257,13 @@ async def upload_chart(file: UploadFile = File(...)):
     Returns:
         JSON with analysis and timestamp
     """
+    print(f"\n🎯 [REQUEST] 收到上传请求")
+    print(f"📁 [REQUEST] 文件名: {file.filename}")
+    print(f"🏷️  [REQUEST] 内容类型: {file.content_type}")
+    
     # Validate file type
     if not validate_image(file):
+        print(f"❌ [ERROR] 文件类型验证失败")
         raise HTTPException(
             status_code=400,
             detail="Invalid file type. Please upload an image file."
@@ -188,16 +308,20 @@ async def upload_chart(file: UploadFile = File(...)):
             )
         
         # Analyze the trading chart using OpenAI (reuse image_bytes)
+        print(f"📤 [INFO] 发送到 OpenAI 进行分析...")
         analysis = await analyze_trading_chart(image_bytes, file.filename or "chart.png")
         
+        print(f"✅ [SUCCESS] 分析完成，准备返回结果")
+        
         # Return the analysis with timestamp
-        return JSONResponse(
-            content={
-                "analysis": analysis,
-                "timestamp": datetime.now().isoformat(),
-                "filename": file.filename
-            }
-        )
+        result = {
+            "analysis": analysis,
+            "timestamp": datetime.now().isoformat(),
+            "filename": file.filename
+        }
+        print(f"📦 [RESPONSE] 返回结果，分析长度: {len(analysis)} 字符")
+        
+        return JSONResponse(content=result)
         
     except HTTPException:
         raise
